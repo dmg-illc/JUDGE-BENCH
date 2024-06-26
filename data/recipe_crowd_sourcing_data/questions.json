@@ -1,0 +1,47 @@
+{
+  "overall_instructions": "In this experiment you will be presented one cooking recipe at a time. Below the recipe you will be shown statements about the recipe text and you will be asked to answer to what degree you agree with those statements.",
+  "individual_instructions": [
+    {
+      "category": "grammar",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: The recipe text is grammatically correct."
+    },
+    {
+      "category": "fluency",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: The recipe text reads smoothly."
+    },
+    {
+      "category": "verbosity",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: The recipe explains the steps concisely and does not repeat information unnecessarily."
+    },
+    {
+      "category": "structure",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: The recipe explains the steps in a helpful order."
+    },
+    {
+      "category": "success",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: In combination with a list of the required ingredients, the recipe would enable me to successfully prepare the dish."
+    },
+    {
+      "category": "overall",
+      "worst": 1,
+      "best": 6,
+      "task": "Please indicate for each of the statements below to what extent you agree with the statement on a scale from 1 to 6.",
+      "statement": "Statement: Overall, the recipe is well written."
+    }
+  ]
+}

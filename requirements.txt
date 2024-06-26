@@ -1,0 +1,11 @@
+pydantic
+pytest
+pandas
+numpy
+datasets
+openpyxl
+Jinja2
+colorcet
+seaborn
+scikit-learn
+scipy

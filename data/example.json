@@ -1,0 +1,48 @@
+
+{
+    "dataset": "Rewritten cooking recipes (Stein et al., DMR Workshop 2024)",
+    "dataset_url": "https://github.com/interactive-cookbook/recipe-generation",
+    "annotations": [
+      { "metric": "grammaticality",
+        "category": "graded",
+        "prompt": "On a scale of 1 (ungrammatical) to 7 (fully grammatical), rate the following sentence for grammaticality. {{ instance }}",
+        "worst": 1,
+        "best": 7
+      },
+      { "metric": "fluency",
+        "category": "graded",
+        "prompt": "On a scale of 1 (incomprehensible) to 7 (totally natural), rate the following sentence for fluency. {{ instance }}",
+        "worst": 1,
+        "best": 7
+      }
+    ],
+    "instances": [
+      { "id":1,
+        "instance": "Salt water lightly.",
+        "annotations": {
+          "grammaticality": {
+             "mean_human": 2.88,
+             "individual_human_scores": [2, 6, 3]
+          },
+          "fluency": {
+              "mean_human": 2.58,
+              "individual_human_scores": [1, 6, 3]
+          }
+        }
+      },
+      { "id":2,
+        "instance": "Salt water lightly.",
+        "annotations": {
+          "grammaticality": {
+             "mean_human": 2.88,
+             "individual_human_scores": [2, 6, 3]
+          },
+          "fluency": {
+              "mean_human": 2.58,
+              "individual_human_scores": [1, 6, 3]
+          }
+        }
+      }
+    ]
+  }
+  
