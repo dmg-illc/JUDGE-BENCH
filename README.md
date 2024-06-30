@@ -1,5 +1,7 @@
 # LLMs instead of Human Judges? A Large Scale Empirical Study across 20 NLP Evaluation Tasks
 
+Paper link: https://arxiv.org/abs/2406.18403
+
 ![Evaluation](overview_meta_eval.png)
 
 ## Data
@@ -46,3 +48,15 @@ Next, the script `eval_responses.py` computes the correlation metrics from the h
 python eval_responses.py -rd results -d cola -m meta-llama/Meta-Llama-3-70B-Instruct
 ```
 This script saves a .json file for each dataset, which can be used to reproduce the tables and figures from the paper in `results_notebook.ipynb`.
+
+## Citation
+
+If you use this work, please cite:
+
+```bibtex
+@inproceedings{Bavaresco2024JUDGE_BENCH,
+  title={LLMs instead of Human Judges? A Large Scale Empirical Study across 20 NLP Evaluation Tasks},
+  author={Anna Bavaresco and Raffaella Bernardi and Leonardo Bertolazzi and Desmond Elliott and Raquel Fernández and Albert Gatt and E. Ghaleb and Mario Giulianelli and Michael Hanna and Alexander Koller and André F. T. Martins and Philipp Mondorf and Vera Neplenbroek and Sandro Pezzelle and Barbara Plank and David Schlangen and Alessandro Suglia and Aditya K Surikuchi and Ece Takmaz and Alberto Testoni},
+  year={2024},
+  url={https://arxiv.org/abs/2406.18403}
+}
