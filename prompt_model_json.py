@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 from huggingface_hub import login
 import os
+import re
 from models import HFModel, APIModel
 
 dataset_names = {
@@ -85,31 +86,18 @@ api_models = [
 ]
 
 additional_prompts = {
-    0: (
-        "",
-        " Do not output anything else. Do not explain or justify your answer. Please output only one answer, and nothing else. Answer with one of {}.",
-    ),
     1: ("", " Answer with one of {}. Do not explain your answer."),
-    2: ("", " Label: "),
-    3: (
-        """You should first provide a brief explanation of your evaluation, and then always end your response with either {therefore} verbatim.
-Do NOT say all / neither are good.
-Do NOT output any other words.
-Do NOT say {correct} at the beginning. You should do reasoning and thinking **before** claiming which is the correct answer.
-# Instruction:
-""",
-        """
-# Decision (Give a brief explanation of your evaluation followed by either {therefore} verbatim. Always claim which is the correct answer at the end. In your explanation, you should always use one of {} to refer to the answers.):""",
+    9: (
+        "",
+        " Always end your answer with either {therefore} regarding the entire context. Let's think step by step.",
     ),
-    4: (
-        """# Instruction:
-""",
-        """
-# Decision (Give a brief explanation of your evaluation followed by either {therefore} verbatim. Always claim which is the correct answer at the end. In your explanation, you should always use one of {} to refer to the answers.):""",
-    ),
-    5: (
+    11: (
         "",
         " Answer with a number between 0 and 100. Do not explain your answer.",
+    ),
+    19: (
+        "",
+        """ Always end your answer with "Therefore, X is correct." regarding the entire context, where X is a number between 0 and 100. Let's think step by step.""",
     ),
 }
 
@@ -183,6 +171,20 @@ if __name__ == "__main__":
         help="Number of tokens that model completion is limited to",
     )
     parser.add_argument(
+        "-tp",
+        "--task_prompt",
+        type=str,
+        default="prompt",
+        choices=[
+            "prompt",
+            "prompt_fsp",
+            "prompt_paraphrase_1",
+            "prompt_paraphrase_2",
+            "prompt_paraphrase_3",
+        ],
+        help="ID of dataset prompt to choose from paraphrases",
+    )
+    parser.add_argument(
         "-ap",
         "--add_prompt",
         type=int,
@@ -223,19 +225,42 @@ if __name__ == "__main__":
     for dataset_name, filename in dataset_names.items():
         if args.dataset != "all" and dataset_name != args.dataset:
             continue
-        print(dataset_name)
 
         resolved_name = (
             double_names[dataset_name]
             if dataset_name in double_names
             else dataset_name
         )
+        if resolved_name == "wmt-23" and args.add_prompt in [1, 9]:
+            args.add_prompt += 10
+        if args.add_prompt in [11, 19] and resolved_name != "wmt-23":
+            args.add_prompt -= 10
+
+        print(dataset_name)
         filepath = f"data/{resolved_name}/{filename}.json"
         print(filepath)
 
         # load dataset
         with open(filepath, "r", encoding="utf-8") as infile:
             data = json.load(infile)
+        model_name_without_org = args.model.split("/")[-1]
+        existing_file = [
+            file
+            for file in os.listdir(args.results_dir)
+            if re.search(
+                f"{dataset_name}_{model_name_without_org}-tp{args.task_prompt}-sp{args.system_prompt}-ap{args.add_prompt}",
+                file,
+            )
+        ]
+        if len(existing_file):
+            prev_results = []
+            for fi in existing_file:
+                with open(f"{args.results_dir}/{fi}", "r") as infile:
+                    prev_result = json.load(infile)
+                prev_results.append(prev_result)
+        else:
+            prev_results = None
+
         # set batch size
         if dataset_name in lower_batch_size:
             batch_size = max(1, args.batch_size // 2)
@@ -243,8 +268,10 @@ if __name__ == "__main__":
             batch_size = max(1, args.batch_size // 8)
         else:
             batch_size = args.batch_size
+
         # save run details
         data["run_details"] = {
+            "task_prompt_id": args.task_prompt,
             "additional_prompt_id": args.add_prompt,
             "additional_prompt": additional_prompts[args.add_prompt],
             "system_prompt_id": args.system_prompt,
@@ -298,7 +325,7 @@ if __name__ == "__main__":
                 "{correct}",
                 label_lists[annotation["metric"]]["correct"],
             )
-            + annotation["prompt"]
+            + annotation[args.task_prompt]
             + additional_prompts[args.add_prompt][1]
             .replace("{}", label_lists[annotation["metric"]]["labels_only"])
             .replace(
@@ -309,8 +336,15 @@ if __name__ == "__main__":
                 label_lists[annotation["metric"]]["correct"],
             )
             for annotation in data["annotations"]
-            if annotation["prompt"]
+            if annotation[args.task_prompt]
         }
+
+        fsp_examples_id = {
+            annotation["metric"]: annotation["fsp_examples_id"]
+            for annotation in data["annotations"]
+            if "fsp_examples_id" in annotation
+        }
+        print(fsp_examples_id)
 
         if not prompts:
             continue
@@ -319,44 +353,81 @@ if __name__ == "__main__":
             metric: [
                 replace_instance(metric_prompt, instance)
                 for instance in data["instances"]
+                if args.task_prompt != "prompt_fsp"
+                or instance["id"] not in fsp_examples_id[metric]
             ]
             for metric, metric_prompt in prompts.items()
         }
-        # collect responses
-        responses = {
-            metric: model.generate_responses(
-                metric_prompt,
-                batch_size,
-                system_prompt=system_prompt.replace(
-                    "{}", label_lists[metric]["labels_only"]
+        ids = {
+            metric: {
+                k: v
+                for v, k in enumerate(
+                    [
+                        instance["id"]
+                        for instance in data["instances"]
+                        if args.task_prompt != "prompt_fsp"
+                        or instance["id"] not in fsp_examples_id[metric]
+                    ]
                 )
-                .replace(
-                    "{therefore}",
-                    label_lists[metric]["therefore"],
-                )
-                .replace(
-                    "{correct}",
-                    label_lists[metric]["correct"],
-                ),
-            )
-            if system_prompt
-            else model.generate_responses(
-                metric_prompt, batch_size, system_prompt=system_prompt
-            )
-            for metric, metric_prompt in dataset.items()
+            }
+            for metric in dataset
         }
-        # store responses in file
-        for i in range(len(data["instances"])):
-            for metric in dataset:
-                data["instances"][i]["annotations"][metric][
-                    args.model
-                ] = responses[metric][i]
-        # write json with responses to file
-        model_name_without_org = args.model.split("/")[-1]
-        current_time = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
-        with open(
-            f"{args.results_dir}/{dataset_name}_{model_name_without_org}-sp{args.system_prompt}-ap{args.add_prompt}_{current_time}.json",
-            "w",
-            encoding="utf-8",
-        ) as outfile:
-            json.dump(data, outfile)
+        for metric in dataset:
+            print(dataset[metric][:5])
+        # collect responses
+        for metric, metric_prompt in dataset.items():
+            print(metric_prompt[0])
+            skip_metric = False
+            if prev_results:
+                for prev_result in prev_results:
+                    if (
+                        args.model
+                        in prev_result["instances"][0]["annotations"][metric]
+                    ):
+                        for i in range(len(data["instances"])):
+                            data["instances"][i]["annotations"][metric][
+                                args.model
+                            ] = prev_result["instances"][i]["annotations"][
+                                metric
+                            ][
+                                args.model
+                            ]
+                        skip_metric = True
+            if skip_metric:
+                continue
+            if system_prompt:
+                responses = model.generate_responses(
+                    metric_prompt,
+                    batch_size,
+                    system_prompt=system_prompt.replace(
+                        "{}", label_lists[metric]["labels_only"]
+                    )
+                    .replace(
+                        "{therefore}",
+                        label_lists[metric]["therefore"],
+                    )
+                    .replace(
+                        "{correct}",
+                        label_lists[metric]["correct"],
+                    ),
+                )
+            else:
+                responses = model.generate_responses(
+                    metric_prompt, batch_size, system_prompt=system_prompt
+                )
+
+            print(ids, len(data["instances"]), len(fsp_examples_id[metric]))
+            for i in range(len(data["instances"])):
+                if data["instances"][i]["id"] in ids[metric]:
+                    data["instances"][i]["annotations"][metric][args.model] = (
+                        responses[ids[metric][data["instances"][i]["id"]]]
+                    )
+            # write json with responses to file
+            current_time = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+            with open(
+                f"{args.results_dir}/{dataset_name}_{model_name_without_org}-tp{args.task_prompt}-sp{args.system_prompt}-ap{args.add_prompt}_{current_time}.json",
+                "w",
+                encoding="utf-8",
+            ) as outfile:
+                json.dump(data, outfile)
+        print(f"All metrics for {dataset_name} computed")

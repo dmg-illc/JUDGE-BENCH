@@ -40,10 +40,8 @@ tasks_dataset_names = {
     "wmt-23-zh-en": "Translation",
     "inferential-strategies": "Reasoning",
     "medical-safety": "Toxicity \ Safety",
-    "toxic_chat-train": "Toxicity \ Safety",
-    "toxic_chat-test": "Toxicity \ Safety",
-    "toxic-chat-train": "Toxicity \ Safety",
-    "toxic-chat-test": "Toxicity \ Safety",
+    "toxic_chat": "Toxicity \ Safety",
+    "toxic-chat": "Toxicity \ Safety",
     "dices-990": "Toxicity \ Safety",
     "dices_990": "Toxicity \ Safety",
     "dices_350_expert": "Toxicity \ Safety",
@@ -72,8 +70,7 @@ dataset_names = [
     "summeval",
     "switchboard-acceptability",
     "topical_chat",
-    "toxic_chat-train",
-    "toxic_chat-test",
+    "toxic_chat",
     "wmt-human_en_de",
     "wmt-human_zh_en",
     "wmt-23_en_de",
@@ -116,11 +113,14 @@ def get_files_with_responses(results_dir, dataset, model=None):
         "*" if model is None else f'{model.split("/")[-1]}-spNone-ap*'
     )
     files = sorted(glob.glob(prefix), key=os.path.getctime)
-    # select files with spNone-ap1 or spNone-ap5
+    # switch between files with ap9/ap19 and those with ap1/ap11
     files = [
-        file for file in files if "spNone-ap1" in file or "spNone-ap5" in file
+        file
+        for file in files
+        if "spNone-ap1_" in file or "spNone-ap11_" in file
+        # if "spNone-ap9_" in file or "spNone-ap19_" in file
     ]
-    # remove results from "claude haiku" and "command r-plus"
+    # remove results from "claude haiku"
     files = [file for file in files if "haiku" not in file]
     return files if model is None else [files[-1]]
 
@@ -196,8 +196,36 @@ def evaluate(set_h, set_m, set_all_h, valid_counter, type, expert, task):
     }
 
 
-def extract_answer(response, category, labels_list):
+def extract_answer(
+    response, category, labels_list, CoT_prompting=False, dataset=None
+):
     response = response.strip().lower()
+
+    if CoT_prompting:
+        answer = None
+        response = response.replace("**", "")
+        if category == "categorical" and answer not in labels_list:
+            for label in labels_list:
+                if f"therefore, {label} is correct." in response:
+                    answer = label
+                    break
+        elif category == "graded" or category == "continuous":
+            for label in range(int(labels_list[0]), int(labels_list[1]) + 1):
+                if dataset.startswith("recipe") and response.endswith(
+                    f"therefore, {label} is correct."
+                ):
+                    answer = label
+                    break
+                elif f"therefore, {label} is correct." in response:
+                    answer = label
+                    break
+
+        if answer == None:
+            print(
+                f"[INVALID RESPONSE begins]: {response} [INVALID RESPONSE ends]\n"
+            )
+        return answer, "valid" if answer != None else "non-valid"
+
     if category == "graded":
         search_for = rf"(?<!\d)[{labels_list[0]}-{labels_list[1]}](?!\d)"
         match_found = re.search(search_for, response)
@@ -246,6 +274,7 @@ def get_responses(file):
 
     run_details = responses["run_details"]
     model_name_with_org = run_details["model"]
+    dataset = responses["dataset"].split(" ")[0]
 
     model_name_for_results = model_name_with_org.split("/")[-1]
     sp_id = get_system_prompt_id(run_details)
@@ -285,6 +314,8 @@ def get_responses(file):
         )
         num_valid_responses = 0
         for instance in responses["instances"]:
+            if model_name_with_org not in instance["annotations"][metric]:
+                continue
             judgement_type = (
                 "mean_human"
                 if category in ["graded", "continuous"]
@@ -295,6 +326,8 @@ def get_responses(file):
                 instance["annotations"][metric][model_name_with_org],
                 category,
                 labels_list,
+                CoT_prompting=(ap_id in [9, 19]),
+                dataset=dataset,
             )
             if validity == "valid":
                 num_valid_responses += 1
@@ -349,9 +382,9 @@ def process_files(dataset, files, results_dir):
     responses_for_dataset = {}
     for file in files:
         processed_responses, model = get_responses(file)
-        responses_for_dataset[
-            f'{dataset.replace("_", "-")} | {model}'
-        ] = processed_responses
+        responses_for_dataset[f'{dataset.replace("_", "-")} | {model}'] = (
+            processed_responses
+        )
 
     # step 2: evaluate using different metrics
     results = {}

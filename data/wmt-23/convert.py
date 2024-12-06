@@ -25,6 +25,46 @@ PROMPT = "Your task is to evaluate the quality of machine translation output at 
     "Reference Human Translation:\n{{ reference }}\n\n"\
     "Candidate Translation to Evaluate:\n{{ translation }}\n\n"\
 
+PROMPT_PARA_1 = "Assess the translation quality from {{ source_lang }} to {{ target_lang }} relative to the human reference, "\
+    "using a rating scale from 0 to 100 that captures translation depth:\n"\
+    '- 0: "No aspect of the original message is conveyed in the translation"\n'\
+    '- 30: "The translation partially conveys the original message, but important elements are missing or unclear"\n'\
+    '- 60: "The translation successfully conveys most of the original content with only slight grammatical errors"\n'\
+    '- 100: "The translation is an exact and grammatically perfect reproduction of the original message"\n\n'\
+    '{{ source_lang }} source: "{{ source }}"\n'\
+    '{{ target_lang }} human reference: "{{ reference }}"\n'\
+    '{{ target_lang }} translation: "{{ translation }}"\n'\
+    'Translation Score (0-100):'
+
+# Prompt taken from Large Language Models Are State-of-the-Art Evaluators of Translation Quality (Kocmi & Federmann, EAMT 2023)
+PROMPT_PARA_2 = "Score the following translation from {{ source_lang }} to {{ target_lang }} **with respect to"\
+    "the human reference** on a continuous scale from 0 to 100, where a score of zero means"\
+    'no meaning preserved" and score of one hundred means "perfect meaning and grammar".\n\n'\
+    '{{ source_lang }} source: "{{ source }}"\n'\
+    '**{{ target_lang }} human reference: "{{ reference }}"**\n'\
+    '{{ target_lang }} translation: "{{ target }}"\n'\
+    'Score:'
+
+# Prompt taken from Large Language Models Are State-of-the-Art Evaluators of Translation Quality (Kocmi & Federmann, EAMT 2023)
+PROMPT_PARA_3 = "Score the following translation from {{ source_lang }} to"\
+    "{{ target_lang }} with respect to the human reference on a continuous"\
+    'scale from 0 to 100 that starts with "No meaning preserved", goes'\
+    'through "Some meaning preserved", then "Most meaning preserved and'\
+    'few grammar mistakes", up to "Perfect meaning and grammar".\n\n'\
+    '{{ source_lang }} source: "{{ source }}"\n'\
+    '**{{ target_lang }} human reference: "{{ reference }}"**\n'\
+    '{{ target_lang }} translation: "{{ translation }}"\n'\
+    'Score (0-100):'
+
+PROMPT_FSP = "Score the following translation from {{ source_lang }} to {{ target_lang }} **with respect to"\
+    "the human reference** on a continuous scale from 0 to 100, where a score of zero means"\
+    'no meaning preserved" and score of one hundred means "perfect meaning and grammar".\n\n'\
+    '{{ examples }}'\
+    "New example to score:\n\n"\
+    'Source: "{{ source }}"\n'\
+    'Human reference: "{{ reference }}"\n'\
+    'Translation: "{{ translation }}"\n'\
+    'Score:'
 
 SCHEMA = {
             "dataset": "WMT-23 (Kocmi et al., Proceedings of the Eighth Conference on Machine Translation 2023)",
@@ -34,8 +74,13 @@ SCHEMA = {
             "annotations": [
                 { 
                     "metric": "quality",
-                    "category" : "continuous",
+                    "category": "continuous",
                     "prompt": PROMPT,
+                    "prompt_paraphrase_1": PROMPT_PARA_1,
+                    "prompt_paraphrase_2": PROMPT_PARA_2,
+                    "prompt_paraphrase_3": PROMPT_PARA_3,
+                    "prompt_fsp": None,
+                    "fsp_examples_id": None,
                     "worst": 0.0,
                     "best": 100.0
                 }
@@ -47,6 +92,8 @@ SCHEMA = {
 INSTANCE_SCHEMA = { 
             "id": int,
             "instance": {
+                "source_lang": "",
+                "target_lang": "",
                 "source" : "",
                 "reference" : "",
                 "translation" : ""
@@ -60,9 +107,71 @@ INSTANCE_SCHEMA = {
         }
 
 
+def get_few_shot_examples(data_dict):
+    """
+    Get few-shot examples for each language pair.
+
+    Parameters:
+    data_dict (dict): Dictionary containing dataframes for each language pair.
+
+    Returns:
+    few_shot_ids: Dictionary with few-shot example ids for each language pair.
+    """
+    few_shot_ids = {
+        'en-de': [],
+        'zh-en': []
+    }
+
+    # Process each language pair
+    for lang_pair in ['en-de', 'zh-en']:
+
+        # Filter for language pair
+        lang_data = data_dict[lang_pair]
+
+        # Sort by score
+        sorted_data = lang_data.sort_values('score')
+
+        # Get 2 lowest and 2 highest scoring examples
+        low_examples = sorted_data.head(2)
+        high_examples = sorted_data.tail(2)
+
+        few_shot_ids[lang_pair].extend(low_examples.index.tolist())
+        few_shot_ids[lang_pair].extend(high_examples.index.tolist())
+
+    return few_shot_ids
+
+
+def update_fsp_prompt(data_df, few_shot_ids):
+    """
+    Creates few-shot prompt with examples from the provided data.
+    
+    Args:
+        data_df (DataFrame): A DataFrame containing example data for a single language pair.
+        few_shot_ids (list): A list of example IDs to include in the prompt.
+    
+    Returns:
+        updated_prompt (str): A string containing the updated prompt with the few-shot examples inserted
+    """
+    few_shot_text = f"Example scoring:\n\n"
+    
+    # Add each example to the prompt
+    for ex_id in few_shot_ids:
+        example = data_df.iloc[ex_id]
+        few_shot_text += f"Source: \"{example['source']}\"\n"
+        few_shot_text += f"Human Reference: \"{example['reference']}\"\n"
+        few_shot_text += f"Translation: \"{example['translation']}\"\n"
+        few_shot_text += f"Score: {example['score']}\n\n"
+    
+    updated_prompt = PROMPT_FSP.replace("{{ examples }}", few_shot_text)
+    
+    return updated_prompt
+
+
 def create_df_from_original_data():
     data = {}
-    for lang in ["en-de", "zh-en"]:
+    languages = ["en-de", "zh-en"]
+
+    for lang in languages:
         df = defaultdict(list)
 
         with open(os.path.join("original_data", f"{lang}_source.txt")) as s:
@@ -108,12 +217,26 @@ def convert_data(data_dict,
                         data_dict (dict): dict with dataframe as keys
                         output_file (str): path to save converted .json
     """
+    languages = {
+        "en-de": {
+            "source_lang" : "English",
+            "target_lang" : "German"
+        }, 
+        "zh-en": {
+            "source_lang" : "Chinese",
+            "target_lang" : "English"
+        }
+    }
+    few_shot_ids = get_few_shot_examples(data_dict)
 
     datasets = []
 
-    for dataset_name, df in data_dict.items():
+    for dataset_name, df in data_dict.items():        
 
         schema = deepcopy(SCHEMA)
+        updated_fsp_prompt = update_fsp_prompt(df, few_shot_ids[dataset_name])
+        schema["annotations"][0]["prompt_fsp"] = updated_fsp_prompt
+        schema["annotations"][0]["fsp_examples_id"] = few_shot_ids[dataset_name]
 
         for index, row in df.iterrows():
             if pd.notna(row).all():  # check if all values in the row are not NaN
@@ -122,6 +245,8 @@ def convert_data(data_dict,
                 annotation_dict["instance"]["source"] = row["source"]
                 annotation_dict["instance"]["reference"] = row["reference"]
                 annotation_dict["instance"]["translation"] = row["translation"]
+                annotation_dict["instance"]["source_lang"] = languages[dataset_name]["source_lang"]
+                annotation_dict["instance"]["target_lang"] = languages[dataset_name]["target_lang"]
                 annotation_dict["annotations"]["quality"]["mean_human"] = row["score"]
                 annotation_dict["annotations"]["quality"]["individual_human_scores"].append(row["score"])
                 schema["instances"].append(annotation_dict)

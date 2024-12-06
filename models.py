@@ -40,20 +40,22 @@ class HFModel:
 
     def generate_responses(self, dataset, batch_size, system_prompt=None):
         dataset = list(map(lambda x: self.process(x, system_prompt), dataset))
-        responses = []
-        for response in tqdm(
-            self.model(
-                dataset,
+        results = []
+        for n_batch in tqdm(range(len(dataset) // batch_size + 1)):
+            batch = dataset[batch_size * n_batch : batch_size * (n_batch + 1)]
+            if len(batch) == 0:
+                continue
+            responses = self.model(
+                batch,
                 batch_size=batch_size,
                 max_new_tokens=self.n_tokens,
                 do_sample=False,
                 num_beams=1,
                 return_full_text=False,
-            ),
-            total=len(dataset),
-        ):
-            responses.append(response[0]["generated_text"])
-        return responses
+            )
+            for response in responses:
+                results.append(response[0]["generated_text"])
+        return results
 
 
 class APIModel:
