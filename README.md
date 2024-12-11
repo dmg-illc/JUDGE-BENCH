@@ -6,7 +6,7 @@ Paper link: https://arxiv.org/abs/2406.18403
 
 ## Data
 
-Check the [data](https://github.com/coli-saar/llm-meta-evaluation/tree/main/data) directory for preparing the test data.
+Check the [data](https://github.com/dmg-illc/JUDGE-BENCH/tree/master/data) directory for preparing the test data.
 
 ## Model responses
 
