@@ -9,3 +9,10 @@ colorcet
 seaborn
 scikit-learn
 scipy
+torch
+openai
+google-generativeai
+anthropic
+transformers
+huggingface_hub
+krippendorff
