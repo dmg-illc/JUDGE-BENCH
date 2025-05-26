@@ -35,8 +35,8 @@ The arguments corresponding to models that have been evaluated on Judge-Bench ar
 ```
 {"berkeley-nest/Starling-LM-7B-alpha","mistralai/Mistral-7B-Instruct-v0.3","meta-llama/Meta-Llama-3.1-8B-Instruct",
 "meta-llama/Meta-Llama-3.1-70B-Instruct","CohereForAI/c4ai-command-r-v01","CohereForAI/c4ai-command-r-plus",
-"mistralai/Mixtral-8x22B-Instruct-v0.1","mistralai/Mixtral-8x7B-Instruct-v0.1","allenai/OLMo-7B-Instruct","gpt-4o",
-"gemini-1.5-flash-latest"}
+"mistralai/Mixtral-8x22B-Instruct-v0.1","mistralai/Mixtral-8x7B-Instruct-v0.1","allenai/OLMo-7B-0724-Instruct-hf",
+"gpt-4o", "gemini-1.5-flash-latest"}
 ```
 The open-source models are obtained through HuggingFace, so obtaining results for a different model that is available on HuggingFace can be done simply by specifying its name as the model argument. In order to obtain responses from a different proprietary model, the `APIModel` class in `models.py` might need small modifications depending on the specific API.
 
