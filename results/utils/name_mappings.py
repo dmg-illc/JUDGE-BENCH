@@ -30,19 +30,19 @@ dataset_names = [
 candidate_models = [
     "gpt-4o",
     "gemini-1.5-flash-latest",
-    "Meta-Llama-3-70B-Instruct",
+    "Meta-Llama-3.1-70B-Instruct",
     "Mixtral-8x7B-Instruct-v0.1",
     "Mixtral-8x22B-Instruct-v0.1",
-    "Meta-Llama-3-8B-Instruct",
+    "Meta-Llama-3.1-8B-Instruct",
     "c4ai-command-r-plus",
 ]
 all_models = {
-    "Meta-Llama-3-8B-Instruct": "Open",
-    "Mistral-7B-Instruct-v0.2": "Open",
+    "Meta-Llama-3.1-8B-Instruct": "Open",
+    "Mistral-7B-Instruct-v0.3": "Open",
     "Starling-LM-7B-alpha": "Open",
-    "Meta-Llama-3-70B-Instruct": "Open",
+    "Meta-Llama-3.1-70B-Instruct": "Open",
     "c4ai-command-r-v01": "Open",
-    "OLMo-7B-Instruct": "Open",
+    "OLMo-7B-0724-Instruct-hf": "Open",
     "gpt-3.5-turbo-0125": "Closed",
     "gpt-4o": "Closed",
     "gemini-1.5-flash-latest": "Closed",
@@ -52,18 +52,18 @@ all_models = {
 }
 # Name mapping
 models_short_names = {
-    "Meta-Llama-3-8B-Instruct": "Llama-3-8B",
-    "Meta-Llama-3-70B-Instruct": "Llama-3-70B",
+    "Meta-Llama-3.1-8B-Instruct": "Llama-3.1-8B",
+    "Meta-Llama-3.1-70B-Instruct": "Llama-3.1-70B",
     "Mixtral-8x7B-Instruct-v0.1": "Mixtral-8x7B",
     "Mixtral-8x22B-Instruct-v0.1": "Mixtral-8x22B",
     "gpt-4o": "GPT-4o",
     "gemini-1.5-flash-latest": "Gemini-1.5",
     "c4ai-command-r-v01": "Comm-R4",
     "c4ai-command-r-plus": "Comm-R+",
-    "OLMo-7B-Instruct": "OLMo-7B",
+    "OLMo-7B-0724-Instruct-hf": "OLMo-7B",
     "Starling-LM-7B-alpha": "Starling-7B",
     "gpt-3.5-turbo-0125": "GPT-3.5",
-    "Mistral-7B-Instruct-v0.2": "Mistral-7B",
+    "Mistral-7B-Instruct-v0.3": "Mistral-7B",
 }
 
 task_cabapility_mappings = {
