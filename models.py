@@ -23,23 +23,19 @@ class HFModel:
         )
         if not self.model.tokenizer.pad_token_id:
             self.model.tokenizer.pad_token_id = (
-                self.model.model.config.eos_token_id
+                self.model.tokenizer.eos_token_id
             )
         self.n_tokens = new_tokens
 
-    def process(self, example, system_prompt=None):
+    def process(self, example):
         user_message = {"role": "user", "content": example}
-        if system_prompt is None:
-            messages = [user_message]
-        else:
-            system_message = {"role": "system", "content": system_prompt}
-            messages = [system_message, user_message]
+        messages = [user_message]
         return self.model.tokenizer.apply_chat_template(
             messages, tokenize=False
         )
 
-    def generate_responses(self, dataset, batch_size, system_prompt=None):
-        dataset = list(map(lambda x: self.process(x, system_prompt), dataset))
+    def generate_responses(self, dataset, batch_size):
+        dataset = [self.process(example) for example in dataset]
         results = []
         for n_batch in tqdm(range(len(dataset) // batch_size + 1)):
             batch = dataset[batch_size * n_batch : batch_size * (n_batch + 1)]
@@ -80,16 +76,12 @@ class APIModel:
                 f'Model "{name} is not a valid ClosedModel (gpt, claude, gemini)'
             )
 
-    def generate_responses(self, dataset, batch_size, system_prompt=None):
+    def generate_responses(self, dataset, batch_size):
         responses = []
         for query in tqdm(dataset):
             user_message = {"role": "user", "content": query}
 
-            if system_prompt is None:
-                messages = [user_message]
-            else:
-                system_message = {"role": "system", "content": system_prompt}
-                messages = [system_message, user_message]
+            messages = [user_message]
 
             if self.family == "OpenAI":
                 response = (
