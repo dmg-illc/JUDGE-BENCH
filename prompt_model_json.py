@@ -86,19 +86,10 @@ api_models = [
 ]
 
 additional_prompts = {
-    1: ("", " Answer with one of {}. Do not explain your answer."),
-    9: (
-        "",
-        " Always end your answer with either {therefore} regarding the entire context. Let's think step by step.",
-    ),
-    11: (
-        "",
-        " Answer with a number between 0 and 100. Do not explain your answer.",
-    ),
-    19: (
-        "",
-        """ Always end your answer with "Therefore, X is correct." regarding the entire context, where X is a number between 0 and 100. Let's think step by step.""",
-    ),
+    "regular": " Answer with one of {}. Do not explain your answer.",
+    "cot": " Always end your answer with either {therefore} regarding the entire context. Let's think step by step.",
+    "regular-wmt": " Answer with a number between 0 and 100. Do not explain your answer.",
+    "cot-wmt": """ Always end your answer with "Therefore, X is correct." regarding the entire context, where X is a number between 0 and 100. Let's think step by step.""",
 }
 
 
@@ -141,7 +132,7 @@ if __name__ == "__main__":
         "-m",
         "--model",
         type=str,
-        default="mistralai/Mistral-7B-Instruct-v0.2",
+        default="mistralai/Mistral-7B-Instruct-v0.3",
         help="Model",
     )
     parser.add_argument(
@@ -175,8 +166,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-ap",
         "--add_prompt",
-        type=int,
-        default=0,
+        type=str,
+        default="regular",
         help="Additional (force) prompt to add to dataset prompt",
     )
 
@@ -206,10 +197,13 @@ if __name__ == "__main__":
             if dataset_name in double_names
             else dataset_name
         )
-        if resolved_name == "wmt-23" and args.add_prompt in [1, 9]:
-            args.add_prompt += 10
-        if args.add_prompt in [11, 19] and resolved_name != "wmt-23":
-            args.add_prompt -= 10
+        if resolved_name == "wmt-23" and args.add_prompt in ["regular", "cot"]:
+            args.add_prompt += "-wmt"
+        if (
+            args.add_prompt in ["regular-wmt", "cot-wmt"]
+            and resolved_name != "wmt-23"
+        ):
+            args.add_prompt = args.add_prompts.split("-")[0]
 
         print(dataset_name)
         filepath = f"data/{resolved_name}/{filename}.json"
@@ -289,16 +283,7 @@ if __name__ == "__main__":
         }
         # get prompt for each metric with correct labels
         prompts = {
-            annotation["metric"]: additional_prompts[args.add_prompt][0]
-            .replace("{}", label_lists[annotation["metric"]]["labels_only"])
-            .replace(
-                "{therefore}", label_lists[annotation["metric"]]["therefore"]
-            )
-            .replace(
-                "{correct}",
-                label_lists[annotation["metric"]]["correct"],
-            )
-            + annotation[args.task_prompt]
+            annotation["metric"]: annotation[args.task_prompt]
             + additional_prompts[args.add_prompt][1]
             .replace("{}", label_lists[annotation["metric"]]["labels_only"])
             .replace(
