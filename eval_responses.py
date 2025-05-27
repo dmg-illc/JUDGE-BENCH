@@ -84,13 +84,13 @@ dataset_names = [
 ]
 
 model_names = [
-    "mistralai/Mistral-7B-Instruct-v0.2",
-    "meta-llama/Meta-Llama-3-8B-Instruct",
-    "meta-llama/Meta-Llama-3-70B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "meta-llama/Meta-Llama-3.1-70B-Instruct",
     "berkeley-nest/Starling-LM-7B-alpha",
     "CohereForAI/c4ai-command-r-v01",
     "CohereForAI/c4ai-command-r-plus",
-    "allenai/OLMo-7B-Instruct",
+    "allenai/OLMo-7B-0724-Instruct-hf",
     "gpt-3.5-turbo-0125",
     "claude-3-haiku-20240307",
     "gemini-1.5-flash-latest",
@@ -98,27 +98,17 @@ model_names = [
 ]
 
 
-def get_system_prompt_id(run_details):
-    if run_details["system_prompt"] in [False, None]:
-        return None
-    return (
-        run_details["system_prompt_id"]
-        if "system_prompt_id" in run_details
-        else 0
-    )
-
-
 def get_files_with_responses(results_dir, dataset, model=None):
     prefix = f"{results_dir}/{dataset}_" + (
         "*" if model is None else f'{model.split("/")[-1]}-spNone-ap*'
     )
     files = sorted(glob.glob(prefix), key=os.path.getctime)
-    # switch between files with ap9/ap19 and those with ap1/ap11
+    # switch between files with regular and cot prompts
     files = [
         file
         for file in files
-        if "spNone-ap1_" in file or "spNone-ap11_" in file
-        # if "spNone-ap9_" in file or "spNone-ap19_" in file
+        if "regular" in file
+        # if cot" in file
     ]
     # remove results from "claude haiku"
     files = [file for file in files if "haiku" not in file]
@@ -245,7 +235,7 @@ def extract_answer(
         else:
             # replace with a dummy response:
             return (
-                float(randrange(labels_list[0], labels_list[1])),
+                float(randrange(int(labels_list[0]), int(labels_list[1]))),
                 "non-valid",
             )
     elif category == "categorical":
@@ -277,13 +267,13 @@ def get_responses(file):
     dataset = responses["dataset"].split(" ")[0]
 
     model_name_for_results = model_name_with_org.split("/")[-1]
-    sp_id = get_system_prompt_id(run_details)
     ap_id = (
         None
         if "additional_prompt_id" not in run_details
         else run_details["additional_prompt_id"]
     )
-    model_name_for_results += f" (SP: {sp_id}, AP: {ap_id})"
+    if ap_id:
+        model_name_for_results += f" (AP: {ap_id})"
     print(f"\t{model_name_for_results}")
 
     valid_categories = ["graded", "categorical", "continuous"]
@@ -326,7 +316,7 @@ def get_responses(file):
                 instance["annotations"][metric][model_name_with_org],
                 category,
                 labels_list,
-                CoT_prompting=(ap_id in [9, 19]),
+                CoT_prompting=("cot" in ap_id),
                 dataset=dataset,
             )
             if validity == "valid":
