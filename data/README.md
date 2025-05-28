@@ -1,6 +1,6 @@
 # Data format
 
-For now, we're keeping each crowdsourced dataset in a separate JSON file that follows the JSON schema in [schema.json](https://github.com/coli-saar/llm-meta-evaluation/blob/main/data/schema.json). You can check your own JSON file against the schema using e.g. [check-jsonschema](https://github.com/python-jsonschema/check-jsonschema).
+For now, we're keeping each crowdsourced dataset in a separate JSON file that follows the JSON schema in [schema.json]([https://github.com/coli-saar/llm-meta-evaluation/blob/main/data/schema.json](https://github.com/dmg-illc/TextJudge/blob/master/data/example.json)). You can check your own JSON file against the schema using e.g. [check-jsonschema](https://github.com/python-jsonschema/check-jsonschema).
 
 ## Overall file structure
 
