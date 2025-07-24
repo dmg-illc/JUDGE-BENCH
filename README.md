@@ -1,6 +1,6 @@
 # LLMs instead of Human Judges? A Large Scale Empirical Study across 20 NLP Evaluation Tasks
 
-Paper link: https://arxiv.org/abs/2406.18403
+Paper link: https://aclanthology.org/2025.acl-short.20/
 
 ![Evaluation](overview_meta_eval.png)
 
@@ -54,9 +54,39 @@ This script saves a .json file for each dataset, which can be used to reproduce 
 If you use this work, please cite:
 
 ```bibtex
-@inproceedings{Bavaresco2024JUDGE_BENCH,
-  title={LLMs instead of Human Judges? A Large Scale Empirical Study across 20 NLP Evaluation Tasks},
-  author={Anna Bavaresco and Raffaella Bernardi and Leonardo Bertolazzi and Desmond Elliott and Raquel Fernández and Albert Gatt and E. Ghaleb and Mario Giulianelli and Michael Hanna and Alexander Koller and André F. T. Martins and Philipp Mondorf and Vera Neplenbroek and Sandro Pezzelle and Barbara Plank and David Schlangen and Alessandro Suglia and Aditya K Surikuchi and Ece Takmaz and Alberto Testoni},
-  year={2024},
-  url={https://arxiv.org/abs/2406.18403}
+@inproceedings{bavaresco-etal-2025-llms,
+    title = "{LLM}s instead of Human Judges? A Large Scale Empirical Study across 20 {NLP} Evaluation Tasks",
+    author = "Bavaresco, Anna  and
+      Bernardi, Raffaella  and
+      Bertolazzi, Leonardo  and
+      Elliott, Desmond  and
+      Fern{\'a}ndez, Raquel  and
+      Gatt, Albert  and
+      Ghaleb, Esam  and
+      Giulianelli, Mario  and
+      Hanna, Michael  and
+      Koller, Alexander  and
+      Martins, Andre  and
+      Mondorf, Philipp  and
+      Neplenbroek, Vera  and
+      Pezzelle, Sandro  and
+      Plank, Barbara  and
+      Schlangen, David  and
+      Suglia, Alessandro  and
+      Surikuchi, Aditya K  and
+      Takmaz, Ece  and
+      Testoni, Alberto",
+    editor = "Che, Wanxiang  and
+      Nabende, Joyce  and
+      Shutova, Ekaterina  and
+      Pilehvar, Mohammad Taher",
+    booktitle = "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers)",
+    month = jul,
+    year = "2025",
+    address = "Vienna, Austria",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.acl-short.20/",
+    pages = "238--255",
+    ISBN = "979-8-89176-252-7",
+    abstract = "There is an increasing trend towards evaluating NLP models with LLMs instead of human judgments, raising questions about the validity of these evaluations, as well as their reproducibility in the case of proprietary models. We provide JUDGE-BENCH, an extensible collection of 20 NLP datasets with human annotations covering a broad range of evaluated properties and types of data, and comprehensively evaluate 11 current LLMs, covering both open-weight and proprietary models, for their ability to replicate the annotations. Our evaluations show substantial variance across models and datasets. Models are reliable evaluators on some tasks, but overall display substantial variability depending on the property being evaluated, the expertise level of the human judges, and whether the language is human or model-generated. We conclude that LLMs should be carefully validated against human judgments before being used as evaluators."
 }
